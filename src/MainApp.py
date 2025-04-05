@@ -17,7 +17,6 @@ cttk.set_appearance_mode("Dark")
 
 
 class App(cttk.CTk):
-    DEFAULT_GRAY = ("gray50", "gray30")
     OUTPUT_SIZE_NAME = "Output Width", "Output Height"
 
     def __init__(self):
@@ -48,10 +47,9 @@ class App(cttk.CTk):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        self.frame_left = cttk.CTkFrame(
-            master=self,
-            corner_radius=0,
-        )
+        self.frame_left = LeftPanel(self, self.output_size, self.__on_select_image, self.__on_remove_all_images,
+                                    self.__on_convert)
+
         self.frame_left.grid(row=0, column=0, sticky=cttk.NSEW)
 
         self.frame_right = cttk.CTkFrame(master=self)
@@ -69,65 +67,6 @@ class App(cttk.CTk):
             padx=0,
             pady=0,
         )
-
-        # Left-Side
-        self.frame_left.grid_columnconfigure(1, weight=0)
-        self.frame_left.grid_rowconfigure(7, weight=0)
-
-        self.label_1 = cttk.CTkLabel(master=self.frame_left, text="Actions", font=heading_font())
-        self.label_1.grid(row=0, column=0, sticky=cttk.NSEW, padx=10, pady=10)
-
-        self.select_image_button = cttk.CTkButton(
-            master=self.frame_left,
-            fg_color="#008CBA",
-            hover_color=self.DEFAULT_GRAY,
-            text="Select",
-            font=button_med_font(),
-            command=self.__on_select_image,
-        )
-        self.select_image_button.grid(row=1, column=0, pady=(5, 10), padx=5)
-
-        self.remove_all_button = cttk.CTkButton(
-            master=self.frame_left,
-            fg_color="#f44336",
-            hover_color=self.DEFAULT_GRAY,
-            text="Remove all",
-            font=button_med_font(),
-            command=self.__on_remove_all_images,
-        )
-        self.remove_all_button.grid(row=2, column=0, pady=(5, 10), padx=5)
-
-        self.convert_button = cttk.CTkButton(
-            master=self.frame_left,
-            fg_color="#04AA6D",
-            hover_color=self.DEFAULT_GRAY,
-            text="Convert",
-            font=button_med_font(),
-            command=self.__on_convert,
-        )
-        self.convert_button.grid(row=3, column=0, pady=(5, 10), padx=5)
-
-        self.width_label = cttk.CTkLabel(master=self.frame_left, text="Width", font=body_med_font())
-        self.width_label.grid(row=4, column=0, sticky=cttk.NSEW, padx=10, pady=0)
-        self.width_entry = cttk.CTkEntry(
-            master=self.frame_left,
-            placeholder_text_color="darkblue",
-            fg_color="#008CBA",
-            state="normal",
-            textvariable=self.output_size[0]
-        )
-        self.width_entry.grid(row=5, column=0, pady=(5, 10), padx=5)
-
-        self.height_label = cttk.CTkLabel(master=self.frame_left, text="Height", font=body_med_font())
-        self.height_label.grid(row=6, column=0, sticky=cttk.NSEW, padx=10, pady=0)
-        self.height_entry = cttk.CTkEntry(
-            master=self.frame_left,
-            placeholder_text_color="darkblue",
-            fg_color="#008CBA",
-            state="normal",
-            textvariable=self.output_size[1],
-        )
-        self.height_entry.grid(row=7, column=0, pady=(5, 10), padx=5)
 
     @staticmethod
     def _clean_int_str(string: str):
@@ -260,9 +199,8 @@ class App(cttk.CTk):
 
         return all_files_exist
 
-    def __on_conversion_completed(self, view: ProgressView, success: bool):
+    def __on_conversion_completed(self, view: ProgressView):
         view.destroy()
-        CTkMessagebox.messagebox('Invalid Data', 'File extension has to be .h', sound="off")
 
     # ============ Misc Handlers ============
     def on_closing(self, event=0):
