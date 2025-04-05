@@ -32,7 +32,6 @@ class App(cttk.CTk):
 
         files = os.listdir(TEMP_IMAGE_PATH)
         for file in files:
-            print(file)
             file_path = os.path.join(TEMP_IMAGE_PATH, file)
             if file_path.endswith((".png", ".jpg", ".jpeg", ".bmp")):
                 self.image_list_view.add_image(file_path)
@@ -154,7 +153,7 @@ class App(cttk.CTk):
             size = (int(size[0]), int(size[1]))
 
             self.__verify_image_paths()
-            self.image_list_view.resize_list(size)
+            self.image_list_view.resize_all_images(size)
 
     def _validate_image_output_size(self, size: (str, str)) -> Tuple[bool, list[str]]:
         if len(size[0]) == 0:

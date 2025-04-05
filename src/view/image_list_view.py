@@ -31,15 +31,15 @@ class ImageListView(cttk.CTkFrame):
 
         self.image_list.append(image_view)
 
+    def __create_image(self, path: str, index: int):
+        image_view = ImageView(self.scrollable_frame, path, index, self.__swap_image, self.__remove_image_view, self.IMAGE_SIZE)
+
+        return image_view
+
     def remove_all(self):
         for image in self.image_list:
             image.destroy()
         self.image_list.clear()
-
-    def __create_image(self, path: str, index: int):
-        image_view = ImageView(self.scrollable_frame, path, index, self.__swap_image, self.IMAGE_SIZE)
-
-        return image_view
 
     def __swap_image(self, image_view):
         index = self.image_list.index(image_view)
@@ -52,16 +52,30 @@ class ImageListView(cttk.CTkFrame):
             self.image_list[index].redraw(index)
             self.image_list[index - 1].redraw(index - 1)
 
-    def get_image_path_list(self):
-        return list(map(lambda x: x.file_path, self.image_list))
+    def __remove_image_view(self, image):
+        if image in self.image_list:
+            self.image_list.remove(image)
+            image.destroy()
+            self.image_list[0].redraw(0)
+            self.__update_image_row()
 
     def remove_image_by_path(self, path):
         image = next((image for image in self.image_list if image.file_path == path), None)
         if image is not None:
-            self.image_list.remove(image)
+            if image in self.image_list:
+                self.image_list.remove(image)
+                self.image_list[0].redraw(0)
             image.destroy()
+        self.__update_image_row()
 
-    def resize_list(self, size: Tuple[int, int]):
+    def __update_image_row(self, start_from: int = 0):
+        for index, image in enumerate(self.image_list[start_from:]):
+            image.grid(row=index)
+
+    def get_image_path_list(self):
+        return list(map(lambda x: x.file_path, self.image_list))
+
+    def resize_all_images(self, size: Tuple[int, int]):
         self.IMAGE_SIZE = size
         for index, image in enumerate(self.image_list):
             image.resize(size)
