@@ -1,6 +1,7 @@
+import os
 import re
+import shutil
 import tkinter.filedialog
-from pathlib import Path
 from tkinter import filedialog
 from typing import Tuple
 
@@ -8,6 +9,7 @@ import customtkinter as cttk
 from CustomTkinterMessagebox import CTkMessagebox
 
 from src.converter import start_conversion
+from src.definitions import APP_WIDTH, APP_HEIGHT, MAX_OUTPUT_SIZE, MIN_OUTPUT_SIZE, TEMP_IMAGE_PATH
 from view import *
 from view.fonts.fonts import *
 
@@ -15,26 +17,29 @@ cttk.set_appearance_mode("Dark")
 
 
 class App(cttk.CTk):
-    WIDTH = 680
-    HEIGHT = 480
     DEFAULT_GRAY = ("gray50", "gray30")
-    MAX_OUTPUT_SIZE = 240, 320
-    MIN_OUTPUT_SIZE = 30, 40
     OUTPUT_SIZE_NAME = "Output Width", "Output Height"
 
     def __init__(self):
         super().__init__()
 
-        self.output_size = (cttk.StringVar(name=self.OUTPUT_SIZE_NAME[0], value=str(self.MAX_OUTPUT_SIZE[0])),
-                            cttk.StringVar(name=self.OUTPUT_SIZE_NAME[1], value=str(self.MAX_OUTPUT_SIZE[1])))
+        self.output_size = (cttk.StringVar(name=self.OUTPUT_SIZE_NAME[0], value=str(MAX_OUTPUT_SIZE[0])),
+                            cttk.StringVar(name=self.OUTPUT_SIZE_NAME[1], value=str(MAX_OUTPUT_SIZE[1])))
         self.output_size[0].trace_add("write", self._on_size_change)
         self.output_size[1].trace_add("write", self._on_size_change)
 
         self.build_ui()
 
+        files = os.listdir(TEMP_IMAGE_PATH)
+        for file in files:
+            print(file)
+            file_path = os.path.join(TEMP_IMAGE_PATH, file)
+            if file_path.endswith((".png", ".jpg", ".jpeg", ".bmp")):
+                self.image_list_view.add_image(file_path)
+
     def build_ui(self):
         self.title("Image To Header File Converter")
-        self.geometry(f"{App.WIDTH}x{App.HEIGHT}")
+        self.geometry(f"{APP_WIDTH}x{APP_HEIGHT}")
         self.update()
         self.minsize(self.winfo_width(), self.winfo_height())
 
@@ -56,7 +61,7 @@ class App(cttk.CTk):
 
         # Right-Side Image List
         self.image_list_view = ImageListView(parent=self.frame_right)
-        self.image_list_view.IMAGE_SIZE = self.MAX_OUTPUT_SIZE
+        self.image_list_view.IMAGE_SIZE = MAX_OUTPUT_SIZE
         self.image_list_view.pack(
             in_=self.frame_right,
             side=cttk.TOP,
@@ -147,6 +152,8 @@ class App(cttk.CTk):
         size = (self.output_size[0].get(), self.output_size[1].get())
         if self._validate_image_output_size(size)[0]:
             size = (int(size[0]), int(size[1]))
+
+            self.__verify_image_paths()
             self.image_list_view.resize_list(size)
 
     def _validate_image_output_size(self, size: (str, str)) -> Tuple[bool, list[str]]:
@@ -170,12 +177,12 @@ class App(cttk.CTk):
         result = True
         invalid_data_message = ""
 
-        min_value = self.MIN_OUTPUT_SIZE[0] if name == self.OUTPUT_SIZE_NAME[0] else self.MIN_OUTPUT_SIZE[1]
+        min_value = MIN_OUTPUT_SIZE[0] if name == self.OUTPUT_SIZE_NAME[0] else MIN_OUTPUT_SIZE[1]
         if value < min_value:
             result = False
             invalid_data_message = f"{name} must be at least {min_value}."
 
-        max_value = self.MAX_OUTPUT_SIZE[0] if name == self.OUTPUT_SIZE_NAME[0] else self.MAX_OUTPUT_SIZE[1]
+        max_value = MAX_OUTPUT_SIZE[0] if name == self.OUTPUT_SIZE_NAME[0] else MAX_OUTPUT_SIZE[1]
         if value > max_value:
             result = False
             invalid_data_message = f"{name} must be at most {max_value}."
@@ -183,12 +190,24 @@ class App(cttk.CTk):
         return result, invalid_data_message
 
     def __on_select_image(self):
-        file_paths = filedialog.askopenfilenames(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")])
+        file_paths = filedialog.askopenfilenames(filetypes=[("Image Files", (".png", ".jpg", ".jpeg", ".bmp"))])
         for file_path in file_paths:
-            self.image_list_view.add_image(file_path)
+            file_copy_path = shutil.copy(file_path, TEMP_IMAGE_PATH)
+            self.image_list_view.add_image(file_copy_path)
 
     def __on_remove_all_images(self):
         self.image_list_view.remove_all()
+        files = os.listdir(TEMP_IMAGE_PATH)
+        for file in files:
+            file_path = os.path.join(TEMP_IMAGE_PATH, file)
+            self.__remove_temp_file(file_path)
+
+    def __remove_temp_file(self, path):
+        try:
+            if os.path.isfile(path):
+                os.remove(path)
+        except OSError:
+            print("Error occurred while deleting files.")
 
     def __on_convert(self):
         size = self.output_size[0].get(), self.output_size[1].get()
@@ -215,13 +234,7 @@ class App(cttk.CTk):
             CTkMessagebox.messagebox('Invalid Data', 'File extension has to be .h', sound="off")
             return
 
-        all_files_exist = True
-        for path in image_path_list:
-            if not Path(path).exists():
-                all_files_exist = False
-                self.image_list_view.remove_image_by_path(path)
-
-        if not all_files_exist:
+        if not self.__verify_image_paths(image_path_list):
             CTkMessagebox.messagebox('Invalid Data', 'One or more input files no longer exist', sound="off")
             return
 
@@ -235,6 +248,18 @@ class App(cttk.CTk):
             pady=0,
         )
         start_conversion(image_path_list, output_path, size, progress_view.update_progress)
+
+    def __verify_image_paths(self, image_path_list: list[str] = None) -> bool:
+        if image_path_list is None:
+            image_path_list = self.image_list_view.get_image_path_list()
+
+        all_files_exist = True
+        for path in image_path_list:
+            if not os.path.exists(path):
+                all_files_exist = False
+                self.image_list_view.remove_image_by_path(path)
+
+        return all_files_exist
 
     def __on_conversion_completed(self, view: ProgressView, success: bool):
         view.destroy()

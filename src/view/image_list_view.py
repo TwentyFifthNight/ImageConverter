@@ -33,7 +33,7 @@ class ImageListView(cttk.CTkFrame):
 
     def remove_all(self):
         for image in self.image_list:
-            image.grid_forget()
+            image.destroy()
         self.image_list.clear()
 
     def __create_image(self, path: str, index: int):
@@ -59,8 +59,10 @@ class ImageListView(cttk.CTkFrame):
         image = next((image for image in self.image_list if image.file_path == path), None)
         if image is not None:
             self.image_list.remove(image)
+            image.destroy()
 
     def resize_list(self, size: Tuple[int, int]):
         self.IMAGE_SIZE = size
-        for image in self.image_list:
+        for index, image in enumerate(self.image_list):
             image.resize(size)
+            image.redraw(index)
