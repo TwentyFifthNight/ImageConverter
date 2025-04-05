@@ -55,6 +55,11 @@ class ImageListView(cttk.CTkFrame):
     def get_image_path_list(self):
         return list(map(lambda x: x.file_path, self.image_list))
 
+    def remove_image_by_path(self, path):
+        image = next((image for image in self.image_list if image.file_path == path), None)
+        if image is not None:
+            self.image_list.remove(image)
+
     def resize_list(self, size: Tuple[int, int]):
         self.IMAGE_SIZE = size
         for image in self.image_list:

@@ -1,10 +1,13 @@
 import re
+import tkinter.filedialog
+from pathlib import Path
 from tkinter import filedialog
 from typing import Tuple
 
 import customtkinter as cttk
+from CustomTkinterMessagebox import CTkMessagebox
 
-from src.parser import start_parsing
+from src.converter import start_conversion
 from view import *
 from view.fonts.fonts import *
 
@@ -17,7 +20,7 @@ class App(cttk.CTk):
     DEFAULT_GRAY = ("gray50", "gray30")
     MAX_OUTPUT_SIZE = 240, 320
     MIN_OUTPUT_SIZE = 30, 40
-    OUTPUT_SIZE_NAME = "output_width", "output_height"
+    OUTPUT_SIZE_NAME = "Output Width", "Output Height"
 
     def __init__(self):
         super().__init__()
@@ -30,7 +33,7 @@ class App(cttk.CTk):
         self.build_ui()
 
     def build_ui(self):
-        self.title("Image To Header File Parser")
+        self.title("Image To Header File Converter")
         self.geometry(f"{App.WIDTH}x{App.HEIGHT}")
         self.update()
         self.minsize(self.winfo_width(), self.winfo_height())
@@ -90,15 +93,15 @@ class App(cttk.CTk):
         )
         self.remove_all_button.grid(row=2, column=0, pady=(5, 10), padx=5)
 
-        self.parse_button = cttk.CTkButton(
+        self.convert_button = cttk.CTkButton(
             master=self.frame_left,
             fg_color="#04AA6D",
             hover_color=self.DEFAULT_GRAY,
-            text="Parse",
+            text="Convert",
             font=button_med_font(),
-            command=self.__on_parse,
+            command=self.__on_convert,
         )
-        self.parse_button.grid(row=3, column=0, pady=(5, 10), padx=5)
+        self.convert_button.grid(row=3, column=0, pady=(5, 10), padx=5)
 
         self.width_label = cttk.CTkLabel(master=self.frame_left, text="Width", font=body_med_font())
         self.width_label.grid(row=4, column=0, sticky=cttk.NSEW, padx=10, pady=0)
@@ -187,22 +190,42 @@ class App(cttk.CTk):
     def __on_remove_all_images(self):
         self.image_list_view.remove_all()
 
-    def __on_parse(self):
+    def __on_convert(self):
         size = self.output_size[0].get(), self.output_size[1].get()
         result = self._validate_image_output_size(size)
         if not result[0]:
-            for message in result[1]:
-                print(message)
+            box_message = ""
+            for index, message in enumerate(result[1]):
+                box_message += message
+                if index + 1 < len(result[1]):
+                    box_message += "\n"
+            CTkMessagebox.messagebox('Invalid Data', box_message, sound="off")
             return
 
         size = int(size[0]), int(size[1])
 
         image_path_list = self.image_list_view.get_image_path_list()
         if len(image_path_list) < 1:
-            print("Add images")
+            CTkMessagebox.messagebox('Invalid Data', 'Add one or more images before starting the conversion',
+                                     sound="off", size="400x150")
             return
 
-        progress_view = ProgressView(self.frame_right, self.__on_parse_ended)
+        output_path = tkinter.filedialog.asksaveasfilename(defaultextension=".h", initialfile="output")
+        if not output_path.endswith(".h"):
+            CTkMessagebox.messagebox('Invalid Data', 'File extension has to be .h', sound="off")
+            return
+
+        all_files_exist = True
+        for path in image_path_list:
+            if not Path(path).exists():
+                all_files_exist = False
+                self.image_list_view.remove_image_by_path(path)
+
+        if not all_files_exist:
+            CTkMessagebox.messagebox('Invalid Data', 'One or more input files no longer exist', sound="off")
+            return
+
+        progress_view = ProgressView(self.frame_right, self.__on_conversion_completed)
         progress_view.pack(
             in_=self.frame_right,
             side=cttk.BOTTOM,
@@ -211,14 +234,15 @@ class App(cttk.CTk):
             padx=0,
             pady=0,
         )
+        start_conversion(image_path_list, output_path, size, progress_view.update_progress)
 
-        start_parsing(image_path_list, size, progress_view.update_progress)
-
-    def __on_parse_ended(self, view: ProgressView):
+    def __on_conversion_completed(self, view: ProgressView, success: bool):
         view.destroy()
+        CTkMessagebox.messagebox('Invalid Data', 'File extension has to be .h', sound="off")
 
     # ============ Misc Handlers ============
     def on_closing(self, event=0):
+        self.image_list_view.remove_all()
         self.destroy()
 
     def start(self):
