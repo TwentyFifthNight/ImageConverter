@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Callable
 
 import customtkinter as cttk
 
@@ -8,7 +8,7 @@ from src.view import *
 class ImageListView(cttk.CTkFrame):
     IMAGE_SIZE: Tuple[int, int] = (200, 200)
 
-    def __init__(self, parent):
+    def __init__(self, parent, on_remove_image: Callable[[str], None]):
         super().__init__(parent)
         self.image_list: list[ImageView] = []
 
@@ -20,6 +20,7 @@ class ImageListView(cttk.CTkFrame):
                                                         scrollbar_button_color="#333333")
         self.scrollable_frame.grid(row=0, column=0, sticky=cttk.NSEW, padx=5, pady=5)
         self.scrollable_frame.grid_columnconfigure((0, 1, 2), weight=1)
+        self.on_remove_image = on_remove_image
 
     def add_image(self, path: str):
         if not path:
@@ -32,7 +33,7 @@ class ImageListView(cttk.CTkFrame):
         self.image_list.append(image_view)
 
     def __create_image(self, path: str, index: int):
-        image_view = ImageView(self.scrollable_frame, path, index, self.__swap_image, self.__remove_image_view, self.IMAGE_SIZE)
+        image_view = ImageView(self.scrollable_frame, path, index, self.__swap_image, self.on_remove_image, self.IMAGE_SIZE)
 
         return image_view
 
@@ -64,7 +65,8 @@ class ImageListView(cttk.CTkFrame):
         if image is not None:
             if image in self.image_list:
                 self.image_list.remove(image)
-                self.image_list[0].redraw(0)
+                if len(self.image_list) > 0:
+                    self.image_list[0].redraw(0)
             image.destroy()
         self.__update_image_row()
 

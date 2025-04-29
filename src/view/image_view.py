@@ -9,7 +9,7 @@ from src.view.fonts.fonts import button_med_font
 class ImageView(cttk.CTkFrame):
 
     def __init__(self, parent, path: str, index: int, on_swap_image: Callable[[cttk.CTkFrame], None],
-                 on_remove_image: Callable[[cttk.CTkFrame], None], size: Tuple[int, int] = (200, 200)):
+                 on_remove_image: Callable[[str], None], size: Tuple[int, int] = (200, 200)):
         super().__init__(parent)
 
         self.grid_columnconfigure(0, weight=1)
@@ -21,7 +21,7 @@ class ImageView(cttk.CTkFrame):
         if index > 0:
             self.swap_button.grid(row=0, column=0)
 
-        remove_button = cttk.CTkButton(self, text="✖", font=button_med_font(), width=20, fg_color="#f44336", command=lambda s=self: on_remove_image(s))
+        remove_button = cttk.CTkButton(self, text="✖", font=button_med_font(), width=20, fg_color="#f44336", command=lambda p=path: on_remove_image(p))
         remove_button.grid(row=1, column=1)
 
         image = cttk.CTkImage(Image.open(path), size=size)

@@ -57,7 +57,7 @@ class App(cttk.CTk):
         self.frame_right.grid(row=0, column=1, sticky=cttk.NSEW, padx=20, pady=20)
 
         # Right-Side Image List
-        self.image_list_view = ImageListView(parent=self.frame_right)
+        self.image_list_view = ImageListView(parent=self.frame_right, on_remove_image=self.__on_remove_image_by_path)
         self.image_list_view.IMAGE_SIZE = MAX_OUTPUT_SIZE
         self.image_list_view.pack(
             in_=self.frame_right,
@@ -139,6 +139,10 @@ class App(cttk.CTk):
         for file in files:
             file_path = os.path.join(TEMP_IMAGE_PATH, file)
             self.__remove_temp_file(file_path)
+
+    def __on_remove_image_by_path(self, path):
+        self.__remove_temp_file(path)
+        self.image_list_view.remove_image_by_path(path)
 
     def __remove_temp_file(self, path):
         try:
