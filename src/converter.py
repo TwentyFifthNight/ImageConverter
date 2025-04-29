@@ -31,6 +31,9 @@ def convert(filepaths: list[str], output_path: str, size: Tuple[int, int], progr
 
                 image = Image.open(path).resize(size)
 
+                if image.mode != "RGB":
+                    image = image.convert(mode="RGB")
+
                 image = np.asarray(image, dtype=np.uint16)
                 rgb565_array = rgb_to_hex565(image)
 
